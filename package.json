@@ -1,0 +1,34 @@
+{
+  "name": "airaware",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "@react-three/drei": "^10.7.0",
+    "@react-three/fiber": "^9.3.0",
+    "framer-motion": "^12.23.0",
+    "lucide-react": "^0.548.0",
+    "next": "^16.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "recharts": "^3.2.0",
+    "three": "^0.181.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.181.0",
+    "eslint": "^9.38.0",
+    "eslint-config-next": "^16.4.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.4"
+  }
+}
