@@ -8,6 +8,12 @@ AirAware is a Vercel-ready, climate-tech web application that connects:
 
 It was redesigned from the original student prototype to feel like a product rather than a generic AI dashboard.
 
+## 🌍 Live Demo
+
+**AirAware** is a climate-tech web app that combines air-quality insights, commute emissions, and AI-assisted recommendations to help users make smarter, lower-emission travel choices.
+
+🔗 **[Live Website](https://air-aware-web-sul9.vercel.app/)**
+
 ## Why this version?
 
 The product is optimized for:
