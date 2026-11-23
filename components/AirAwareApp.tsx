@@ -314,7 +314,7 @@ export default function AirAwareApp() {
                 <SceneLoader intensity={air?.current?.us_aqi && air.current.us_aqi > 150 ? 2 : 1} />
                 <div className="orbLabel bottom">
                   <span>{air ? `${air.location.name}, ${air.location.country}` : "Select a city to begin"}</span>
-                  <strong>{air?.current?.us_aqi ? `${Math.round(air.current.us_aqi)} US AQI` : "AIR / TRANSPORT / AI"}</strong>
+                  <strong>{typeof air?.current?.us_aqi === "number" ? `${Math.round(air.current.us_aqi)} US AQI` : "AQI UNAVAILABLE"}</strong>
                 </div>
               </div>
             </section>
@@ -358,7 +358,7 @@ export default function AirAwareApp() {
                   <div className="aqGrid">
                     <div className="aqHeroCard">
                       <div className="miniLabel">MODELLED US AQI</div>
-                      <div className="aqValue">{Math.round(air.current.us_aqi ?? 0)}</div>
+                      <div className="aqValue">{typeof air.current.us_aqi === "number" ? Math.round(air.current.us_aqi) : "—"}</div>
                       <div className="aqStatus">{aq.label}</div>
                       <p>{aq.description}</p>
                       <div className="trendPill">{trend.label} <span>{trend.delta >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}</span></div>
