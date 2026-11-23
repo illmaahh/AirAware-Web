@@ -57,7 +57,8 @@ function normalizeInput(value: unknown): RecommendationInput | null {
 }
 
 function fallback(body: RecommendationInput) {
-  const aqi = Number(body.airQuality.us_aqi);
+  const aqiValue = body.airQuality.us_aqi;
+  const aqi = typeof aqiValue === "number" ? aqiValue : Number.NaN;
   const mode = body.commute.mode;
   const co2 = body.commute.monthlyCo2Kg;
   const city = body.city;
