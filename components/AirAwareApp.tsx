@@ -40,6 +40,7 @@ import {
 } from "recharts";
 
 import { aqBand, signedTrend } from "@/lib/aq";
+import { getExposureGuidance } from "@/lib/exposure";
 import { calculateCommute, MODES, type TransportMode } from "@/lib/transport";
 import SceneLoader from "@/components/SceneLoader";
 
@@ -221,6 +222,7 @@ export default function AirAwareApp() {
 
   const trend = signedTrend((air?.hourly?.us_aqi || []).filter((x): x is number => typeof x === "number"));
   const aq = aqBand(air?.current?.us_aqi ?? null);
+  const exposure = getExposureGuidance(air?.current?.us_aqi);
   const scenarioPct = commute.monthlyCo2Kg > 0 ? Math.round((scenarioSaving / commute.monthlyCo2Kg) * 100) : 0;
 
   function navTo(id: string) {
@@ -404,6 +406,21 @@ export default function AirAwareApp() {
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
+                  </div>
+
+                  <div className="exposureCard" aria-live="polite">
+                    <div className="exposureHeader">
+                      <div>
+                        <span className="exposureKicker">OUTDOOR ACTIVITY CHECK</span>
+                        <h3>{exposure.headline}</h3>
+                        <p>{exposure.summary}</p>
+                      </div>
+                      <span className={`exposureLevel ${exposure.level}`}>{aq.label}</span>
+                    </div>
+                    <ul>
+                      {exposure.actions.map((action) => <li key={action}>{action}</li>)}
+                    </ul>
+                    <small>General guidance based on the modelled US AQI category. Not a medical assessment or official local alert.</small>
                   </div>
                 </>
               )}
