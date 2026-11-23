@@ -282,3 +282,23 @@ a{color:inherit}
   .compareRow{grid-template-columns:1fr 1fr}.compareTrack{grid-column:1 / -1;grid-row:2}.compareRow strong{text-align:left}
   .beforeAfter{grid-template-columns:1fr}.scenarioArrow{transform:rotate(90deg)}.projectRibbon{grid-template-columns:1fr}.footer{flex-direction:column;padding:26px 18px}
 }
+
+
+/* Challenge 6: practical, transparent outdoor activity guidance */
+.exposureCard{margin-top:12px;padding:22px 24px;border:1px solid #dce7e0;border-radius:22px;background:linear-gradient(135deg,#fff 0%,#f2faf5 100%);box-shadow:0 12px 35px rgba(27,56,42,.055)}
+.exposureHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+.exposureKicker{font-size:9px;font-weight:900;letter-spacing:.13em;color:#648271}
+.exposureHeader h3{font-size:20px;letter-spacing:-.03em;margin:8px 0 6px;color:#183c29}
+.exposureHeader p{font-size:12px;line-height:1.65;color:#6f7e74;margin:0;max-width:760px}
+.exposureLevel{flex:none;padding:7px 10px;border-radius:999px;font-size:9px;font-weight:900;background:#e7f3eb;color:#316344}
+.exposureLevel.moderate{background:#fff4d8;color:#805c0b}
+.exposureLevel.sensitive{background:#fff0df;color:#985016}
+.exposureLevel.unhealthy{background:#fde9e7;color:#9a3930}
+.exposureLevel.very-unhealthy{background:#f0e9fb;color:#69459a}
+.exposureLevel.hazardous{background:#f8e4ec;color:#8a3152}
+.exposureLevel.unavailable{background:#edf0ee;color:#68756d}
+.exposureCard ul{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;margin:18px 0 14px;list-style:none}
+.exposureCard li{font-size:11px;line-height:1.55;color:#40564a;background:#fff;border:1px solid #e2ece5;border-radius:12px;padding:12px}
+.exposureCard li:before{content:"•";color:#36a967;font-weight:900;margin-right:7px}
+.exposureCard>small{font-size:9px;line-height:1.5;color:#87938b}
+@media(max-width:700px){.exposureHeader{flex-direction:column}.exposureCard ul{grid-template-columns:1fr}}
