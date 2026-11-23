@@ -12,17 +12,28 @@ export async function GET(request: NextRequest) {
   if (!city) {
     return NextResponse.json({ error: "Enter a city name." }, { status: 400 });
   }
+  if (city.length > 100 || /[\u0000-\u001f]/.test(city)) {
+    return NextResponse.json({ error: "Enter a city name under 100 characters." }, { status: 400 });
+  }
 
   try {
-    const geoResponse = await fetch(
-      `${GEO_URL}?name=${encodeURIComponent(city)}&count=1&language=en&format=json`,
-      { next: { revalidate: 3600 } },
-    );
-    if (!geoResponse.ok) throw new Error("Location lookup failed.");
+    const geoUrl = new URL(GEO_URL);
+    geoUrl.search = new URLSearchParams({
+      name: city,
+      count: "1",
+      language: "en",
+      format: "json",
+    }).toString();
+
+    const geoResponse = await fetch(geoUrl, {
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!geoResponse.ok) throw new Error("Location lookup is temporarily unavailable.");
 
     const geo = await geoResponse.json();
     const place = geo.results?.[0];
-    if (!place) {
+    if (!place || !Number.isFinite(place.latitude) || !Number.isFinite(place.longitude)) {
       return NextResponse.json(
         { error: "City not found. Try a larger nearby city." },
         { status: 404 },
@@ -40,10 +51,14 @@ export async function GET(request: NextRequest) {
 
     const aqResponse = await fetch(`${AQ_URL}?${params.toString()}`, {
       next: { revalidate: 600 },
+      signal: AbortSignal.timeout(12000),
     });
-    if (!aqResponse.ok) throw new Error("Air-quality provider unavailable.");
+    if (!aqResponse.ok) throw new Error("Air-quality data is temporarily unavailable.");
 
     const payload = await aqResponse.json();
+    if (!payload.current && !payload.hourly) {
+      throw new Error("The air-quality provider returned no usable readings.");
+    }
 
     return NextResponse.json({
       source: "Open-Meteo Air Quality API",
@@ -61,9 +76,9 @@ export async function GET(request: NextRequest) {
       hourly: payload.hourly ?? {},
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unexpected data error." },
-      { status: 502 },
-    );
+    const message = error instanceof Error && error.name === "TimeoutError"
+      ? "The air-quality service took too long to respond. Please try again."
+      : "Air-quality data could not be loaded right now. Please try again shortly.";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }
