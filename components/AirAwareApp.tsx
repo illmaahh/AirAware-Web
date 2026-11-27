@@ -40,6 +40,7 @@ import {
 } from "recharts";
 
 import { aqBand, signedTrend } from "@/lib/aq";
+import { parseCityList, rankCityReadings } from "@/lib/city-comparison";
 import { getExposureGuidance } from "@/lib/exposure";
 import { calculateCommute, MODES, type TransportMode } from "@/lib/transport";
 import SceneLoader from "@/components/SceneLoader";
@@ -51,11 +52,11 @@ type AirResult = {
   retrievedAt: string;
   current: {
     time?: string;
-    us_aqi?: number;
-    pm2_5?: number;
-    pm10?: number;
-    nitrogen_dioxide?: number;
-    ozone?: number;
+    us_aqi?: number | null;
+    pm2_5?: number | null;
+    pm10?: number | null;
+    nitrogen_dioxide?: number | null;
+    ozone?: number | null;
   };
   hourly: {
     time?: string[];
@@ -97,6 +98,10 @@ export default function AirAwareApp() {
   const [air, setAir] = useState<AirResult | null>(null);
   const [loadingAir, setLoadingAir] = useState(false);
   const [airError, setAirError] = useState("");
+  const [compareInput, setCompareInput] = useState("Delhi, Mumbai, Dubai");
+  const [cityResults, setCityResults] = useState<AirResult[]>([]);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [compareError, setCompareError] = useState("");
 
   const [mode, setMode] = useState<TransportMode>(demo.mode);
   const [distance, setDistance] = useState(demo.distance);
@@ -163,6 +168,46 @@ export default function AirAwareApp() {
       setAirError(error instanceof Error ? error.message : "Could not fetch air quality.");
     } finally {
       setLoadingAir(false);
+    }
+  }
+
+  async function compareCities() {
+    const names = parseCityList(compareInput);
+    if (names.length < 2) {
+      setCompareError("Enter at least two different city names, separated by commas.");
+      setCityResults([]);
+      return;
+    }
+
+    setCompareLoading(true);
+    setCompareError("");
+    try {
+      const outcomes = await Promise.allSettled(names.map(async (name) => {
+        const response = await fetch(`/api/air-quality?city=${encodeURIComponent(name)}`);
+        const payload: unknown = await response.json();
+        if (!response.ok) {
+          const message = typeof payload === "object" && payload !== null && "error" in payload
+            ? String(payload.error)
+            : "Air-quality data could not be loaded.";
+          throw new Error(message);
+        }
+        return payload as AirResult;
+      }));
+
+      const successful = outcomes.flatMap((outcome) =>
+        outcome.status === "fulfilled" ? [outcome.value] : [],
+      );
+      const failedCount = outcomes.length - successful.length;
+      setCityResults(rankCityReadings(successful));
+      if (failedCount > 0) {
+        setCompareError(`${failedCount} city ${failedCount === 1 ? "could" : "cities could"} not be loaded. Check the names and try again.`);
+      } else if (successful.length < 2) {
+        setCompareError("At least two cities need valid readings to compare.");
+      }
+    } catch {
+      setCompareError("The city comparison could not be completed. Please try again.");
+    } finally {
+      setCompareLoading(false);
     }
   }
 
@@ -424,6 +469,80 @@ export default function AirAwareApp() {
                   </div>
                 </>
               )}
+            </section>
+
+            <section id="city-intelligence" className="section cityIntelSection">
+              <div className="sectionHeader">
+                <div>
+                  <div className="eyebrow">01B / CITY INTELLIGENCE</div>
+                  <h2>Compare the air <em>across cities.</em></h2>
+                  <p>Run a side-by-side comparison using the same modelled US AQI source. Lower AQI ranks first; missing readings are kept separate rather than treated as zero.</p>
+                </div>
+              </div>
+              <div className="cityComparePanel">
+                <div className="cityCompareControls">
+                  <label htmlFor="city-compare-input">Cities to compare</label>
+                  <div className="cityCompareInputRow">
+                    <input
+                      id="city-compare-input"
+                      value={compareInput}
+                      onChange={(event) => setCompareInput(event.target.value)}
+                      onKeyDown={(event) => event.key === "Enter" && compareCities()}
+                      placeholder="Delhi, Mumbai, Dubai"
+                      aria-describedby="city-compare-help"
+                    />
+                    <button onClick={compareCities} disabled={compareLoading}>
+                      {compareLoading ? "Comparing…" : "Compare cities"}
+                    </button>
+                  </div>
+                  <small id="city-compare-help">Enter 2–5 cities, separated by commas. Example: Delhi, Mumbai, Dubai, London.</small>
+                </div>
+                {compareError && <div className="errorBanner cityCompareError" role="status">{compareError}</div>}
+                {cityResults.length > 0 ? (
+                  <>
+                    <div className="cityCompareSummary">
+                      <strong>{cityResults.length} {cityResults.length === 1 ? "city" : "cities"} loaded</strong>
+                      <span>Ranked by current modelled US AQI · lower is better</span>
+                    </div>
+                    <div className="cityCompareGrid">
+                      {cityResults.map((result, index) => {
+                        const score = result.current.us_aqi;
+                        const band = aqBand(typeof score === "number" ? score : null);
+                        return (
+                          <article className="cityCompareCard" key={`${result.location.name}-${result.location.country}`}>
+                            <div className="cityCompareCardTop">
+                              <span className="cityRank">#{index + 1}</span>
+                              <span className={`cityBand level-${band.level}`}>{band.label}</span>
+                            </div>
+                            <h3>{result.location.name}</h3>
+                            <p className="cityCountry">{result.location.country || "Country unavailable"}</p>
+                            <div className="cityAqiValue">
+                              {typeof score === "number" && Number.isFinite(score) ? Math.round(score) : "—"}
+                              <span>US AQI</span>
+                            </div>
+                            <div className="cityPollutants">
+                              <div><span>PM₂.₅</span><strong>{number(result.current.pm2_5)}</strong><small>µg/m³</small></div>
+                              <div><span>PM₁₀</span><strong>{number(result.current.pm10)}</strong><small>µg/m³</small></div>
+                              <div><span>NO₂</span><strong>{number(result.current.nitrogen_dioxide)}</strong><small>µg/m³</small></div>
+                              <div><span>O₃</span><strong>{number(result.current.ozone)}</strong><small>µg/m³</small></div>
+                            </div>
+                            <small className="citySource">Modelled · Open-Meteo</small>
+                            <button className="cityUseButton" onClick={() => { setCity(result.location.name); setAir(result); navTo("air"); }}>
+                              Open in Air Lens <ChevronRight size={14} />
+                            </button>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <div className="cityCompareEmpty">
+                    <Compass size={22} />
+                    <div><strong>No comparison yet</strong><p>Compare multiple cities to see their current AQI ranking and pollutant profile.</p></div>
+                  </div>
+                )}
+                <p className="cityCompareDisclaimer">These are modelled estimates, not live readings from local monitoring stations. City-level results may not represent neighbourhood conditions.</p>
+              </div>
             </section>
 
             <section id="commute" className="section darkSection">
