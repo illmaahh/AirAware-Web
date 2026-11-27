@@ -3,15 +3,15 @@ import { GoogleGenAI } from "@google/genai";
 import { MODES, type TransportMode } from "@/lib/transport";
 export const runtime = "nodejs";
 type Context={city:string;airQuality:Record<string,number>;commute:{mode:TransportMode;monthlyKm:number;monthlyCo2Kg:number;annualCo2Tonnes:number};comparison:Array<{mode:TransportMode;monthlyCo2Kg:number}>};
-const record=(v:unknown):v is Record<string,any>=>typeof v==="object"&&v!==null&&!Array.isArray(v);
+const record=(v:unknown):v is Record<string,unknown>=>typeof v==="object"&&v!==null&&!Array.isArray(v);
 const validNumber=(v:unknown,max=1_000_000):v is number=>typeof v==="number"&&Number.isFinite(v)&&v>=0&&v<=max;
 function parseContext(v:unknown):Context|null {
  if(!record(v)||typeof v.city!=="string"||!v.city.trim()||v.city.length>100||!record(v.airQuality)||!record(v.commute)||!Array.isArray(v.comparison)) return null;
  const c=v.commute;
  if(typeof c.mode!=="string"||!MODES.includes(c.mode as TransportMode)||!validNumber(c.monthlyKm)||!validNumber(c.monthlyCo2Kg)||!validNumber(c.annualCo2Tonnes)) return null;
  const airQuality:Record<string,number>={};
- for(const key of ["us_aqi","pm2_5","pm10","nitrogen_dioxide","ozone"]){const n=v.airQuality[key];if(n!==undefined){if(!validNumber(n,100000))return null;airQuality[key]=n;}}
- const comparison=v.comparison.slice(0,MODES.length).map((x:unknown)=>record(x)&&typeof x.mode==="string"&&MODES.includes(x.mode as TransportMode)&&validNumber(x.monthlyCo2Kg)?{mode:x.mode as TransportMode,monthlyCo2Kg:x.monthlyCo2Kg}:null);
+ for(const key of ["us_aqi","pm2_5","pm10","nitrogen_dioxide","ozone"]){const n=v.airQuality[key];if(n!==undefined&&n!==null){if(!validNumber(n,100000))return null;airQuality[key]=n;}}
+ const comparison=v.comparison.slice(0,MODES.length).map((x:unknown)=>{if(!record(x)||typeof x.mode!=="string"||!MODES.includes(x.mode as TransportMode)||!validNumber(x.monthlyCo2Kg))return null;return {mode:x.mode as TransportMode,monthlyCo2Kg:x.monthlyCo2Kg};});
  if(comparison.some((x:any)=>x===null))return null;
  return {city:v.city.trim(),airQuality,commute:{mode:c.mode as TransportMode,monthlyKm:c.monthlyKm,monthlyCo2Kg:c.monthlyCo2Kg,annualCo2Tonnes:c.annualCo2Tonnes},comparison};
 }
